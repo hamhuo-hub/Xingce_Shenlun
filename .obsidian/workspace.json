@@ -1,126 +1,104 @@
 {
   "main": {
-    "id": "b5259264fdf8f727",
+    "id": "8157f0377fcf055d",
     "type": "split",
     "children": [
       {
-        "id": "1502c91a3082f7d5",
+        "id": "98014a0072ffec40",
         "type": "tabs",
         "children": [
           {
-            "id": "d100091369cb269b",
+            "id": "9bdf0c9116e410c6",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "言语.md",
+                "file": "资料分析/基期计算.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "言语"
+              "title": "基期计算"
             }
           },
           {
-            "id": "3af51fc633b6d3cf",
+            "id": "f9b90afdac18e0b6",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "判断推理/判断推理 旧.md",
+                "file": "资料分析/速算法.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "判断推理 旧"
+              "title": "速算法"
             }
           },
           {
-            "id": "987d67462ffcc55f",
+            "id": "c9e113683d1ad269",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "判断推理/类比推理.md",
+                "file": "资料分析/增长率计算.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "类比推理"
-            }
-          },
-          {
-            "id": "faefefb24df76693",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "资料分析/统计术语.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "统计术语"
-            }
-          },
-          {
-            "id": "aaa7b046a596de9c",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "资料分析/统计术语.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "统计术语"
-            }
-          },
-          {
-            "id": "6a066121b11b1237",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "资料分析/比重计算.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "比重计算"
-            }
-          },
-          {
-            "id": "6f81210264804640",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "资料分析/比重计算.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "比重计算"
+              "title": "增长率计算"
             }
           }
         ],
-        "currentTab": 6
+        "currentTab": 1
+      },
+      {
+        "id": "f8747fe3c1cb56fe",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "b7afacb9f3da7498",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "资料分析/比重和平均数.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "比重和平均数"
+            }
+          },
+          {
+            "id": "b08493fe26f5a2c7",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "资料分析/统计术语.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "统计术语"
+            }
+          }
+        ]
       }
     ],
     "direction": "vertical"
   },
   "left": {
-    "id": "9b68129af0036e77",
+    "id": "5ccd6d95d0984abc",
     "type": "split",
     "children": [
       {
-        "id": "d2681bc305ba5c91",
+        "id": "0664da495dca0454",
         "type": "tabs",
         "children": [
           {
-            "id": "edf1656df18c4d3a",
+            "id": "33f3458d99c41d55",
             "type": "leaf",
             "state": {
               "type": "file-explorer",
@@ -133,12 +111,12 @@
             }
           },
           {
-            "id": "21564b3253e50070",
+            "id": "896c18734fb9cbc9",
             "type": "leaf",
             "state": {
               "type": "search",
               "state": {
-                "query": "tag:#增长量计算",
+                "query": "",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -150,7 +128,7 @@
             }
           },
           {
-            "id": "fa50247507f501de",
+            "id": "b0e29524831f047d",
             "type": "leaf",
             "state": {
               "type": "bookmarks",
@@ -166,20 +144,20 @@
     "width": 300
   },
   "right": {
-    "id": "f17a0e2382dbb688",
+    "id": "34ad546170d12de2",
     "type": "split",
     "children": [
       {
-        "id": "8c54d641b2195cbb",
+        "id": "1c89d8af4ca66aa4",
         "type": "tabs",
         "children": [
           {
-            "id": "9b7b9f76b7b93284",
+            "id": "0cd1215d20ef2f3d",
             "type": "leaf",
             "state": {
               "type": "backlink",
               "state": {
-                "file": "逻辑判断.md",
+                "file": "资料分析/速算法.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -189,25 +167,25 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for 逻辑判断"
+              "title": "Backlinks for 速算法"
             }
           },
           {
-            "id": "84d6ce72d25acaa8",
+            "id": "d95fe3b78e2126ad",
             "type": "leaf",
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "逻辑判断.md",
+                "file": "判断推理/判断推理 旧.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from 逻辑判断"
+              "title": "Outgoing links from 判断推理 旧"
             }
           },
           {
-            "id": "42101e5963f7abd4",
+            "id": "eda7c25bf6d1f3cd",
             "type": "leaf",
             "state": {
               "type": "tag",
@@ -222,7 +200,7 @@
             }
           },
           {
-            "id": "846ae267b9b6f2ad",
+            "id": "752805e5466b70d6",
             "type": "leaf",
             "state": {
               "type": "all-properties",
@@ -236,18 +214,18 @@
             }
           },
           {
-            "id": "36c947dca4f690fd",
+            "id": "0225a192b6629ce2",
             "type": "leaf",
             "state": {
               "type": "outline",
               "state": {
-                "file": "逻辑判断.md",
+                "file": "判断推理/判断推理 旧.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of 逻辑判断"
+              "title": "Outline of 判断推理 旧"
             }
           }
         ]
@@ -268,23 +246,22 @@
       "bases:Create new base": false
     }
   },
-  "active": "6f81210264804640",
+  "active": "f9b90afdac18e0b6",
   "lastOpenFiles": [
-    "资料分析/平均数计算.md",
-    "资料分析/增长量计算.md",
-    "资料分析/增长率计算.md",
+    "Untitled.md",
     "资料分析/基期计算.md",
-    "资料分析/比重计算.md",
-    "资料分析/统计术语.md",
     "资料分析/速算法.md",
-    "速算法",
-    "判断推理/类比推理.md",
-    "资料分析",
-    "言语理解/言语理解.md",
-    "言语理解",
-    "判断推理",
+    "资料分析/比重和平均数.md",
+    "资料分析/平均数计算.md",
+    "资料分析/增长率计算.md",
+    "资料分析/增长量计算.md",
+    "资料分析/统计术语.md",
+    "结构阅读法.md",
     "判断推理/判断推理 旧.md",
-    "part2.md",
-    "Welcome.md"
+    "言语理解/言语理解.md",
+    "资料分析",
+    "言语理解",
+    "判断推理/类比推理.md",
+    "判断推理"
   ]
 }
