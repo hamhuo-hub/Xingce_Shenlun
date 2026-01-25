@@ -4,73 +4,24 @@
     "type": "split",
     "children": [
       {
-        "id": "98014a0072ffec40",
+        "id": "9a139da109beded9",
         "type": "tabs",
         "children": [
           {
-            "id": "a7fbe6b4cf966327",
+            "id": "5888948e1b18edb2",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "判断推理/定义判断.md",
+                "file": "言语理解/言语理解.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "定义判断"
-            }
-          },
-          {
-            "id": "7244c239acc5160a",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "判断推理/类比推理.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "类比推理"
+              "title": "言语理解"
             }
           }
         ]
-      },
-      {
-        "id": "f8747fe3c1cb56fe",
-        "type": "tabs",
-        "children": [
-          {
-            "id": "b7afacb9f3da7498",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "资料分析/比重和平均数.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "比重和平均数"
-            }
-          },
-          {
-            "id": "b08493fe26f5a2c7",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "判断推理/判断推理 旧.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "判断推理 旧"
-            }
-          }
-        ],
-        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -143,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "资料分析/速算法.md",
+                "file": "言语理解/言语理解.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -153,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for 速算法"
+              "title": "Backlinks for 言语理解"
             }
           },
           {
@@ -218,8 +169,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -232,22 +182,23 @@
       "bases:Create new base": false
     }
   },
-  "active": "a7fbe6b4cf966327",
+  "active": "5888948e1b18edb2",
   "lastOpenFiles": [
-    "判断推理/类比推理.md",
-    "判断推理/逻辑判断.md",
-    "判断推理/定义判断.md",
-    "判断推理/判断推理 旧.md",
-    "资料分析/增长率计算.md",
-    "Untitled.md",
     "资料分析/统计术语.md",
-    "资料分析/基期计算.md",
-    "资料分析/速算法.md",
-    "资料分析/比重和平均数.md",
-    "资料分析/平均数计算.md",
-    "资料分析/增长量计算.md",
+    "常识积累",
     "资料分析/结构阅读法.md",
+    "资料分析/基期计算.md",
+    "资料分析/增长率计算.md",
+    "资料分析/增长量计算.md",
+    "资料分析/比重和平均数.md",
+    "判断推理/类比推理.md",
     "言语理解/言语理解.md",
+    "判断推理/定义判断.md",
+    "判断推理/逻辑判断.md",
+    "判断推理/判断推理 旧.md",
+    "Untitled.md",
+    "资料分析/速算法.md",
+    "资料分析/平均数计算.md",
     "资料分析",
     "言语理解",
     "判断推理"
