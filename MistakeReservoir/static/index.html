@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>错题蓄水池</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            margin: 0;
+            padding: 20px;
+            color: #334155;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-weight: 300;
+            color: #1e293b;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            margin-bottom: 20px;
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            padding: 30px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: #eff6ff;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .preview-list {
+            margin-top: 20px;
+        }
+
+        .q-item {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 15px 0;
+            display: flex;
+            gap: 15px;
+        }
+
+        .q-meta {
+            min-width: 80px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .q-content {
+            flex: 1;
+        }
+
+        .q-content img {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 4px;
+        }
+
+        .material-badge {
+            background: #fef3c7;
+            color: #d97706;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        #stats-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            flex: 1;
+            text-align: center;
+            box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+        }
+
+        .stat-num {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div id="stats-bar">
+            <!-- populated by js -->
+        </div>
+
+        <div class="card">
+            <h2>📥 错题录入</h2>
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <span id="fileName">点击选择 DOCX 文件 (或拖拽至此)</span>
+                <input type="file" id="fileInput" hidden accept=".docx">
+            </div>
+
+            <div style="margin-top: 15px;">
+                <label>输入错题题号 (例如: 1-5, 12, 116-120)</label>
+                <input type="text" id="rangeInput" placeholder="1-5, 12, 116-120">
+            </div>
+
+            <button onclick="extractPreview()" id="extractBtn">🔍 解析预览</button>
+        </div>
+
+        <div class="card">
+            <h2>📤 生成错题卷</h2>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <input type="number" id="genCount" value="20" style="width:80px; margin:0;" min="1" max="135">
+                <label>题量</label>
+                <button onclick="generatePaper()" style="margin:0;">📄 生成错题卷</button>
+            </div>
+            <div id="downloadArea" style="margin-top:15px;"></div>
+        </div>
+
+        <div class="card" id="previewArea" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>预览 (<span id="previewCount">0</span> 题)</h3>
+                <button onclick="confirmSave()" style="background:#16a34a;">✅ 确认入库</button>
+            </div>
+            <div class="preview-list" id="previewList"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentFilename = "";
+        let extractedData = [];
+
+        document.getElementById('fileInput').addEventListener('change', async function (e) {
+            let file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('fileName').innerText = "正在上传: " + file.name;
+
+            let formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                let res = await fetch('/upload', { method: 'POST', body: formData });
+                let data = await res.json();
+                currentFilename = data.filename;
+                document.getElementById('fileName').innerText = "✅ 已上传: " + currentFilename;
+            } catch (err) {
+                alert("上传失败");
+            }
+        });
+
+        async function extractPreview() {
+            if (!currentFilename) return alert("请先上传文件");
+            let ranges = document.getElementById('rangeInput').value;
+            if (!ranges) return alert("请输入题号");
+
+            document.getElementById('extractBtn').innerText = "Parsing...";
+
+            try {
+                let res = await fetch('/extract_preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: currentFilename, ranges: ranges })
+                });
+
+                if (!res.ok) {
+                    let errData = await res.json();
+                    throw new Error(errData.detail || "Server Error " + res.status);
+                }
+
+                let data = await res.json();
+
+                if (!data.questions) {
+                    throw new Error("Invalid response from server");
+                }
+
+                extractedData = data.questions;
+                renderPreview(data.questions);
+                document.getElementById('previewArea').style.display = 'block';
+            } catch (err) {
+                alert("解析失败: " + err);
+            } finally {
+                document.getElementById('extractBtn').innerText = "🔍 解析预览";
+            }
+        }
+
+        function renderPreview(list) {
+            let html = "";
+            list.forEach(q => {
+                html += `
+                <div class="q-item">
+                    <div class="q-meta">
+                        #${q.original_num}<br>
+                        <span style="font-size:12px; color:#64748b">${q.type}</span>
+                        ${q.material_content ? '<br><span class="material-badge">含材料</span>' : ''}
+                    </div>
+                    <div class="q-content">
+                        ${q.content_html}
+                        <div style="margin-top:5px; color:#64748b; font-size:0.9em;">
+                            <strong>Options:</strong><br>
+                            ${q.options_html || '(无单独选项)'}
+                        </div>
+                    </div>
+                </div>
+            `;
+            });
+            document.getElementById('previewList').innerHTML = html;
+            document.getElementById('previewCount').innerText = list.length;
+        }
+
+        async function confirmSave() {
+            if (extractedData.length === 0) return;
+            if (!confirm("确认将这 " + extractedData.length + " 道题加入错题池?")) return;
+
+            try {
+                let res = await fetch('/confirm_save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        source_filename: currentFilename,
+                        questions: extractedData
+                    })
+                });
+                let data = await res.json();
+                alert("成功入库 " + data.saved_count + " 题!");
+                location.reload();
+            } catch (err) {
+                alert("保存失败");
+            }
+        }
+
+        async function generatePaper() {
+            let count = document.getElementById('genCount').value;
+            try {
+                document.getElementById('downloadArea').innerHTML = "Fetching...";
+                let res = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ total_count: parseInt(count) })
+                });
+                if (!res.ok) {
+                    let err = await res.json();
+                    throw new Error(err.detail);
+                }
+                let data = await res.json();
+
+                // Save to LocalStorage to pass to new tab
+                localStorage.setItem('paper_data', JSON.stringify(data.questions));
+
+                // Open new tab
+                window.open('/static/paper.html', '_blank');
+
+                document.getElementById('downloadArea').innerHTML = `✅ 已打开打印页`;
+
+            } catch (e) {
+                document.getElementById('downloadArea').innerHTML = "❌ Error: " + e.message;
+            }
+        }
+
+        async function loadStats() {
+            let res = await fetch('/pool_status');
+            let data = await res.json();
+            let html = "";
+            for (let type in data) {
+                html += `
+                <div class="stat-box">
+                    <div class="stat-num">${data[type]}</div>
+                    <div>${type}</div>
+                </div>
+            `;
+            }
+            if (!html) html = "<div class='stat-box'>错题池为空</div>";
+            document.getElementById('stats-bar').innerHTML = html;
+        }
+
+        loadStats();
+    </script>
+</body>
+
+</html>
