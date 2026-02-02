@@ -24,7 +24,10 @@ class QuestionExtractor:
             r'^\s*[一二三四五六七八九十]+、|'
             r'^\s*根据.*(材料|回答|短文)'
         )
-        self.ANSWER_KEYWORDS = ['【答案】', '【解析】', '【拓展】', '【来源】', '正确答案', '参考答案', '答案:', '答案：', '解析:', '解析：']
+        # Unified Answer Regex (covers spaces and various formats)
+        self.ANSWER_REGEX = re.compile(
+            r'(【\s*答案\s*】|【\s*解析\s*】|【\s*拓展\s*】|【\s*来源\s*】|正确\s*答案|参考\s*答案|答案\s*[:：]|解析\s*[:：])'
+        )
         self.OPTION_PATTERN = re.compile(r'^\s*\(?[A-D]\)?[\.．、\s]')
         
         # Current State
@@ -118,7 +121,17 @@ class QuestionExtractor:
             if isinstance(block, Paragraph):
                 # Search for <a:blip>
                 ns = block._element.nsmap
-                blips = block._element.findall('.//a:blip', ns)
+                # Ensure 'a' prefix exists if we use it, or use the full namespace
+                # Common issue: 'a' might not be in the immediate element's nsmap if defined at root
+                if 'a' not in ns:
+                    ns['a'] = 'http://schemas.openxmlformats.org/drawingml/2006/main'
+                
+                try:
+                    blips = block._element.findall('.//a:blip', ns)
+                except KeyError:
+                    # Fallback if manual ns injection failed or other xml issues
+                    blips = []
+
                 for blip in blips:
                     rId = blip.get('{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed')
                     if rId:
@@ -139,7 +152,8 @@ class QuestionExtractor:
                         for p in cell.paragraphs:
                             images.extend(self.get_block_images(doc, p))
         except Exception as e:
-            print(f"Error getting block images: {e}")
+            # print(f"Error getting block images: {e}") # Suppress spam
+            pass
             
         return images
 
@@ -161,9 +175,8 @@ class QuestionExtractor:
                 rows.append(f"<tr>{''.join(cells)}</tr>")
             html = f"<table border='1' cellspacing='0' cellpadding='5'>{''.join(rows)}</table>"
         
-        if images:
-            for img in images:
-                html += f'<div class="img-container"><img src="media/{img}" class="question-img" /></div>'
+        for img in images:
+            html += f'<div class="img-container"><img src="/media/{img}" class="question-img" /></div>'
                 
         return html, images
 
@@ -172,13 +185,14 @@ class QuestionExtractor:
         Convert a buffer of blocks into structured Question data.
         Separates Stem, Options, and Analysis.
         """
+        from copy import deepcopy
+        
         stem_blocks = []
         option_blocks = []
         analysis_blocks = []
         
         # State: 0=Stem, 1=Options, 2=Analysis
         state = 0
-        
         
         for block in buffer:
             text = ""
@@ -192,21 +206,68 @@ class QuestionExtractor:
                         cell_texts.append(cell.text.strip())
                 text = " ".join(cell_texts)
             
-            # Check Switch to Analysis
-            is_analysis = False
-            for kw in self.ANSWER_KEYWORDS:
-                if kw in text:
-                    is_analysis = True
-                    break
+            # Check Switch to Analysis using Regex
+            # We use search to find it anywhere in the line
+            ans_match = self.ANSWER_REGEX.search(text)
             
-            if is_analysis:
-                state = 2
+            if ans_match:
+                # If found, we might need to SPLIT the block if it's a Paragraph
+                # checks if match is at the start or middle
+                
+                # If purely checks if (kw in text) in old code. 
+                # Now we have the match object.
+                
+                start_idx = ans_match.start()
+                
+                if start_idx == 0:
+                    # Starts with Answer keyword -> Simple switch
+                    state = 2
+                else:
+                    # Found in MIDDLE (e.g. "D. xxx 【解析】...")
+                    # We need to split this block.
+                    if isinstance(block, Paragraph):
+                        # 1. Capture the part BEFORE the keyword
+                        part1_text = text[:start_idx].strip()
+                        # 2. Capture the part INCLUDING and AFTER the keyword
+                        part2_text = text[start_idx:].strip()
+                        
+                        print(f"DEBUG: Splitting block at index {start_idx}. Part1='{part1_text[-10:]}', Part2='{part2_text[:10]}'")
+                        
+                        # 3. Modify current block to contain only Part 1
+                        # This invalidates 'block' for the analysis part, so we need a copy for Part 2.
+                        
+                        # Deepcopy element for part 2
+                        try:
+                            elem_copy = deepcopy(block._element)
+                            block_part2 = Paragraph(elem_copy, block._parent)
+                            block_part2.text = part2_text
+                            
+                            # Original block gets Part 1 text
+                            block.text = part1_text
+                            
+                            # Add original block to CURRENT state (before switch)
+                            if state == 1:
+                                option_blocks.append(block)
+                            else:
+                                stem_blocks.append(block)
+                                
+                            # Now switch state
+                            state = 2
+                            # Add new block to Analysis
+                            analysis_blocks.append(block_part2)
+                            
+                            continue # Processed this block fully via split
+                            
+                        except Exception as e:
+                            print(f"Wrapper Split Error: {e}")
+                            state = 2 # Fallback: just switch state and treat whole block as analysis (old behavior)
+                    else:
+                        state = 2 # Table logic: treat whole table as analysis if keyword found
             
             # Check Switch to Options (Only if currently in Stem or Options)
-            # Typically Options start with A. B. C. D.
             if state < 2:
                 if self.OPTION_PATTERN.match(text):
-                    print(f"DEBUG: Found Option Start: {text[:10]}")
+                    # print(f"DEBUG: Found Option Start: {text[:10]}")
                     state = 1
             
             if state == 2:
@@ -217,16 +278,40 @@ class QuestionExtractor:
                 stem_blocks.append(block)
         
         # Helper to convert list of blocks to HTML
-        def blocks_to_html_str(blks):
+        def blocks_to_html_str(blks, is_stem=False):
             htmls = []
             imgs = []
-            for b in blks:
+            for i_idx, b in enumerate(blks):
+                # Special handling for First Stem Block -> Remove Question Number
+                if is_stem and i_idx == 0 and isinstance(b, Paragraph):
+                    # We utilize the same Q_PATTERN to remove the number prefix
+                    # But we need to be careful: Q_PATTERN matches Start of string.
+                    # We can use sub/replace logic.
+                    text = b.text.strip()
+                    match = self.Q_PATTERN.match(text)
+                    if match:
+                        # Remove the matched part
+                        cleaned_text = text[match.end():].strip()
+                        # Manually Create HTML for this block to avoid modifying object
+                        # Just grab images normally
+                        block_imgs = self.get_block_images(doc, b)
+                        imgs.extend(block_imgs)
+                        
+                        h = f"<p>{cleaned_text}</p>" if cleaned_text else ""
+                        
+                        # Add image tags
+                        for img in block_imgs:
+                            h += f'<div class="img-container"><img src="/media/{img}" class="question-img" /></div>'
+                        
+                        htmls.append(h)
+                        continue
+                
                 h, i = self.block_to_html(doc, b)
                 htmls.append(h)
                 imgs.extend(i)
             return "".join(htmls), imgs
 
-        stem_html, stem_imgs = blocks_to_html_str(stem_blocks)
+        stem_html, stem_imgs = blocks_to_html_str(stem_blocks, is_stem=True)
         opt_html, opt_imgs = blocks_to_html_str(option_blocks)
         ana_html, ana_imgs = blocks_to_html_str(analysis_blocks)
         
@@ -278,8 +363,14 @@ class QuestionExtractor:
                 if "常识" in text: self.current_type = "常识"
                 elif "言语" in text: self.current_type = "言语"
                 elif "数量" in text: self.current_type = "数量"
-                elif "判断" in text: self.current_type = "判断"
                 elif "资料" in text: self.current_type = "资料"
+                elif "判断" in text: self.current_type = "判断" # Default, will be refined
+                
+                # Sub-types for Judgment (Scanning for specific section headers)
+                if "图形" in text and "推理" in text: self.current_type = "图形"
+                elif "定义" in text and "判断" in text: self.current_type = "定义"
+                elif "类比" in text and "推理" in text: self.current_type = "类比"
+                elif "逻辑" in text and "判断" in text: self.current_type = "逻辑"
                 
                 # Material Handling - RESET Logic
                 # Any blocks coming AFTER this header (and before next Q) should be Material.

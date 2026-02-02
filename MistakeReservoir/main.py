@@ -18,7 +18,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MEDIA_DIR = os.path.join(BASE_DIR, "media")
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 if not os.path.exists(UPLOAD_DIR): os.makedirs(UPLOAD_DIR)
-
 # Init Components
 db = DatabaseManager(os.path.join(BASE_DIR, "reservoir.db"))
 extractor = QuestionExtractor(MEDIA_DIR)
@@ -38,9 +37,18 @@ def generate_paper(req: GenerateRequest):
     if not questions:
         raise HTTPException(status_code=400, detail="No questions available in pool")
         
-    # Return JSON directly for Frontend Rendering
-    # Frontend will group and render
-    return {"count": len(questions), "questions": questions}
+    # Generate DOCX
+    from generator import PaperBuilder
+    builder = PaperBuilder(MEDIA_DIR)
+    
+    filename = f"MistakePaper_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
+    output_path = os.path.join(UPLOAD_DIR, filename)
+    
+    builder.create_paper(questions, output_path)
+    
+    # Return download URL or File directly?
+    # Using JSON with URL is better for fetch handling
+    return {"download_url": f"/download/{filename}", "count": len(questions)}
 
 @app.get("/download/{filename}")
 def download_file(filename: str):
@@ -152,4 +160,4 @@ def pool_status():
 
 # To run: uvicorn main:app --reload
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000)

@@ -232,14 +232,32 @@
             }
         }
 
+        const SCORE_MAP = {
+            '言语': 0.8,
+            '数量': 0.8,
+            '资料': 1.0,
+            '常识': 0.5,
+            '图形': 0.6,
+            '定义': 0.7,
+            '类比': 0.5,
+            '逻辑': 0.8,
+            '判断': 0.7
+        };
+
         function renderPreview(list) {
             let html = "";
+            let totalLostScore = 0;
+
             list.forEach(q => {
+                let score = SCORE_MAP[q.type] || 0.5;
+                totalLostScore += score;
+
                 html += `
                 <div class="q-item">
                     <div class="q-meta">
                         #${q.original_num}<br>
-                        <span style="font-size:12px; color:#64748b">${q.type}</span>
+                        <span style="font-size:12px; color:#64748b">${q.type}</span><br>
+                        <span style="font-size:12px; color:#ef4444">-${score}分</span>
                         ${q.material_content ? '<br><span class="material-badge">含材料</span>' : ''}
                     </div>
                     <div class="q-content">
@@ -253,7 +271,7 @@
             `;
             });
             document.getElementById('previewList').innerHTML = html;
-            document.getElementById('previewCount').innerText = list.length;
+            document.getElementById('previewCount').innerText = list.length + ` (丢分: ${totalLostScore.toFixed(1)})`;
         }
 
         async function confirmSave() {
@@ -280,25 +298,33 @@
         async function generatePaper() {
             let count = document.getElementById('genCount').value;
             try {
-                document.getElementById('downloadArea').innerHTML = "Fetching...";
+                document.getElementById('downloadArea').innerHTML = "Generating...";
                 let res = await fetch('/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ total_count: parseInt(count) })
                 });
+
                 if (!res.ok) {
                     let err = await res.json();
                     throw new Error(err.detail);
                 }
+
                 let data = await res.json();
 
-                // Save to LocalStorage to pass to new tab
-                localStorage.setItem('paper_data', JSON.stringify(data.questions));
+                if (data.download_url) {
+                    // Create trigger
+                    let link = document.createElement('a');
+                    link.href = data.download_url;
+                    link.download = '';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
 
-                // Open new tab
-                window.open('/static/paper.html', '_blank');
-
-                document.getElementById('downloadArea').innerHTML = `✅ 已打开打印页`;
+                    document.getElementById('downloadArea').innerHTML = `✅ 已下载 (${data.count} 题)`;
+                } else {
+                    throw new Error("No download URL returned");
+                }
 
             } catch (e) {
                 document.getElementById('downloadArea').innerHTML = "❌ Error: " + e.message;

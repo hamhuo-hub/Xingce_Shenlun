@@ -1,80 +1,46 @@
-# Implementation Plan - Question Reservoir System
+# Pivot to DOCX Generation
 
 ## Goal
-Build a local "Mistake Reservoir & Paper Generation" system.
-**Workflow**: User records mistakes -> System stores them in a "Pool" -> When pool is full, user generates a **shuffle-order DOCX paper** -> User tests offline -> Updates status (Mastered/Still Wrong).
+Replace the unstable Web Print view with a robust DOCX generator. The generated DOCX must follow strict formatting rules (Reverse-engineered from `extractor.py`) to ensure it looks like a standard exam paper and can potentially be re-parsed.
+User specifically requested fixing "Mixed options", "Unknown Types", and "Format inconsistencies".
 
 ## User Review Required
 > [!IMPORTANT]
-> **Media Storage**: Images will be extracted from DOCX and saved to a local `media/` folder. The database will only store file paths.
-> **Material Handling**: "Data Analysis" (资料分析) questions will be linked to a shared "Material" entry in the database.
+> The "Generate Paper" button will now strictly DOWNLOAD a .docx file instead of showing a web preview. The web preview will be removed or repurposed just for status checking.
 
-## Architecture
+## Proposed Changes
 
-### 1. Database Schema (SQLite)
-*   **Sources**: `id`, `filename`, `upload_date`
-*   **Materials**: `id`, `source_id`, `content_html`, `images` (JSON list of paths), `type` (e.g., 'data_analysis')
-*   **Questions**: 
-    *   `id`, `source_id`, `material_id` (FK, Nullable), `original_num` (int)
-    *   `type` (Const/Verbal/Logic/Quant/Data)
-    *   `content_html` (stem), `options_html`, `analysis_html`
-    *   `images` (JSON list of paths)
-*   **ReviewStats**: 
-    *   `question_id` (FK), `status` (Pool/Archived)
-    *   `mistake_count`, `last_wrong_date`, `last_right_date`
+### Backend Logic (`generator.py`)
+- **Structure**:
+    - **Sections**: Use logical mapping for Headers (e.g., "第一部分 常识判断", "第二部分 言语理解").
+    - **Questions**: Format as `1. [Stem]`.
+    - **Options**: ensure Options are placed on new lines or in a table if needed, strictly following `A.`, `B.` format.
+    - **Materials**: Insert "根据以下材料，回答..." before the group of questions.
+    - **Images**: Ensure all images from `media/` are inserted correctly into the DOCX.
+    - **Answers**: Append a "Answer Key" section at the end with `1. 【答案】X 【解析】...`.
 
-### 2. Core Logic: The Reservoir (Pooling)
-*   **Input Phase**: User inputs numbers (e.g., "1-5"). System extracts them.
-    *   If a question belongs to a Material (Data Analysis), the Material is automatically linked.
-    *   Status set to `Pool`.
-*   **Dashboard**: Shows "Pool Level" (e.g., "Logic: 15/20").
-*   **Output Phase (Web Print)**:
-    *   Trigger: User clicks "Generate Paper".
-    *   Process: Open `paper.html`. Fetch N random questions.
-    *   Rendering: Groups questions by Type. "Compact" CSS.
-    *   Material Logic: Print material once per group.
-    *   User prints to PDF via Browser.
+### API (`main.py`)
+- Modify `/generate` endpoint:
+    - Instead of returning JSON, it calls `PaperBuilder.create_paper`.
+    - Returns a `FileResponse` or a JSON with `download_url`.
+    - Allow passing "Include Answers" flag (default True, probably at end).
 
-### 3. Extraction Engine (`QuestionExtractor`)
-*   **Image Handling**: Extract `blip` -> Save to `media/{uuid}.png` -> Return Path.
-*   **Material Detection**:
-    *   Scan for keys like `根据...回答`, `材料`, `第x部分`.
-    *   Store text between Header and next Question as "Material".
-    *   Link subsequent Questions to this Material until a new Header/Type switch.
-*   **Parsing Fixes**:
-    *   Apply `complete_converter.py` logic (strong deletion of "故", cleanup).
-    *   Separate Stem, Options, and Analysis.
-
-## Proposed Components
-
-### [Backend] `main.py`
-*   `POST /extract`: Input (File, Range String "1-5, 12") -> Returns Preview -> Save to DB.
-*   `GET /pool_status`: Stats by Type.
-*   `POST /generate_docx`: Input (Types, Count) -> Returns Download URL.
-*   `POST /update_results`: Input (Question IDs, Result) -> Archives or Keeps in Pool.
-
-### [Frontend] `static/`
-*   **Entry Page**: Drag & Drop DOCX -> Input Numbers.
-*   **Pool Dashboard**: Progress Bars. "Generate Paper" Button.
-*   **Result Entry**: List generated questions -> Checkbox for "Still Wrong".
-
-## Phase 4: Scoring System (New)
-### Logic
-*   **Score Map**:
-    *   Verbal (言语): 0.8
-    *   Quant (数量): 0.8
-    *   Data (资料): 1.0
-    *   Const (常识): 0.5
-    *   Logic (判断推理):
-        - Graphical (图形): 0.6
-        - Definition (定义): 0.7
-        - Analogy (类比): 0.5
-        - Logic (逻辑): 0.8
-
-### Implementation Update
-*   **Extraction**: Enhance `extractor.py` to regex match sub-headers inside Judgment section (e.g. "一、图形推理") and store fine-grained `type`.
-*   **Scoring**: In `confirm_save`, sum up the total score of questions being added (Lost Points).
+### Frontend (`index.html`)
+- Update "Generate Paper" (生成错题卷) button behavior:
+    - POST `/generate` -> Receive Blob/Link -> Trigger Download.
+    - Remove the Web Preview (Layout `paper.html`) as it is being deprecated.
 
 ## Verification Plan
-1.  **Extraction Test**: Import "Set 12". Input "116-120" (Data Analysis). Verify DB has 1 Material linked to 5 Questions. Verify Images in `media/`.
-2.  **Generation Test**: Generate a DOCX. Check if Material appears correctly (not duplicated 5 times, or handled gracefully). Check if Images render.
+
+### Manual Verification
+1.  **Generate**: Select questions -> Click Generate.
+2.  **Open DOCX**: Open the downloaded file in Word/WPS.
+3.  **Check Layout**:
+    - Are questions grouped by Type? (e.g. all "常识" together under "第一部分").
+    - Are Materials shown once before their questions?
+    - Are Images visible?
+    - Are Options A/B/C/D clearly separated?
+    - Is Question Type visible (or implied by Section)?
+4.  **Re-Import Test** (Optional but good validation):
+    - Upload the GENERATED docx back to the system.
+    - Verify `extractor.py` parses it correctly. (This proves the format is "Standard").

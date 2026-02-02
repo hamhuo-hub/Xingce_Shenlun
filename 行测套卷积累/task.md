@@ -23,18 +23,20 @@
     - [x] "Reservoir" Visuals (Water level / progress bars).
     - [x] "Entry" Form (File + Range Input).
 
-## Phase 3: DOCX Generator
-- [x] Template Design: (Abandoned for Web View) <!-- id: 6 -->
-- [ ] Web Print View (`paper.html`) <!-- id: 7 -->
-    - [ ] Endpoint `/api/paper_data` to fetch Type-grouped questions.
-    - [ ] `paper.html`: Render questions with CSS for printing (A4 layout).
-    - [ ] Grouping: Sort by Type (Const/Verbal/Quant/Logic/Data).
-    - [ ] Styling: Compact, hidden UI buttons.
+## Phase 3: DOCX Generator (Pivot)
+- [/] Implement DOCX Generator in `generator.py` <!-- id: 5 -->
+    - [ ] Mapped Section Headers (Common Sense, Verbal, etc.) <!-- id: 14 -->
+    - [ ] Standard Question Format (1. Stem) <!-- id: 15 -->
+    - [ ] Options Formatting (A/B/C/D on new lines) <!-- id: 16 -->
+    - [ ] Image Insertion (Absolute paths from media) <!-- id: 17 -->
+    - [ ] Answer Key Section <!-- id: 18 -->
+- [ ] Update API to Serve DOCX <!-- id: 19 -->
+- [ ] Update Frontend to Trigger Download <!-- id: 20 -->
 
 ## Phase 4: Scoring System (New)
-- [ ] Update Extractor to detect Sub-types (Graph/Def/Analogy/Logic) <!-- id: 11 -->
-- [ ] Implement Score Calculator Logic (Points per type) <!-- id: 12 -->
-- [ ] UI: Display "Lost Score" / "Current Score" upon entry. <!-- id: 13 -->
+- [x] Update Extractor to detect Sub-types (Graph/Def/Analogy/Logic) <!-- id: 11 -->
+- [x] Implement Score Calculator Logic (Points per type) <!-- id: 12 -->
+- [x] UI: Display "Lost Score" / "Current Score" upon entry. <!-- id: 13 -->
 
 ## Phase 5: Integration
-- [ ] End-to-end Test: Import -> Pool -> Generate -> Result Update. <!-- id: 8 -->
+- [x] End-to-end Test: Import -> Pool -> Generate -> Result Update. <!-- id: 8 -->

@@ -72,9 +72,21 @@ class DatabaseManager:
     def add_source(self, filename: str) -> int:
         conn = self.get_connection()
         c = conn.cursor()
-        c.execute("INSERT INTO sources (filename, upload_date) VALUES (?, ?)", 
-                  (filename, datetime.now().isoformat()))
-        sid = c.lastrowid
+        
+        # Check if source exists to prevent duplication
+        c.execute("SELECT id FROM sources WHERE filename=?", (filename,))
+        row = c.fetchone()
+        
+        if row:
+            sid = row['id']
+            # Update upload date to reflect recent activity
+            c.execute("UPDATE sources SET upload_date=? WHERE id=?", 
+                      (datetime.now().isoformat(), sid))
+        else:
+            c.execute("INSERT INTO sources (filename, upload_date) VALUES (?, ?)", 
+                      (filename, datetime.now().isoformat()))
+            sid = c.lastrowid
+            
         conn.commit()
         conn.close()
         return sid
