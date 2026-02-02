@@ -228,19 +228,21 @@ class PaperBuilder:
             try:
                 with Image.open(fpath) as img:
                     w, h = img.size
-                    # Heuristic: 
-                    # If height < 80px -> Likely a symbol/formula -> Inline
-                    # If width > 200px -> Likely a chart -> Block
                     
-                    if h < 80 or w < 80:
+                    # Revised Heuristic for "Small / Inline"
+                    # User specifically wants images to match 5-hao font (~10.5pt, approx 14-20px rendered).
+                    # If an image is "relatively small" (e.g. < 250px height), assume it's an inline symbol/formula and shrink it.
+                    # 250px is arbitrary but covers most high-dpi small icons.
+                    
+                    if h < 250: 
                         is_inline = True
-                        height_arg = Pt(11) # Matches 5-hao font (~10.5pt)
+                        height_arg = Pt(11) # Force to 5-hao size
                     else:
-                        is_inline = False # Block
+                        # Large content (Chart, Screenshot)
+                        is_inline = False
                         if w > 400:
                             width_arg = Inches(5.5) # Max Page Width
                         else:
-                             # Medium size, keep native? Or limit
                              width_arg = Inches(3.5) if w > 300 else None
             except:
                 is_inline = False # Fallback to block on error
