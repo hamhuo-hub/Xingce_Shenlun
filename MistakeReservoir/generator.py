@@ -265,24 +265,10 @@ class PaperBuilder:
             # If we want a "Block" feel but are stuck in a run, we can add a break before/after?
             try:
                 run.add_break()
-                pic = run.add_picture(fpath, width=width_arg)
+                if width_arg:
+                    run.add_picture(fpath, width=width_arg)
+                else:
+                    run.add_picture(fpath)
                 run.add_break()
             except Exception as e:
-                print(f"Error adding block pic: {e}")
-
-
-if __name__ == "__main__":
-    # Test
-    mock_questions = [
-       {
-            "original_num": 1,
-            "type": "常识",
-            "content_html": '<p>Inline <img src="/media/valid_test.gif" /> test.</p>',
-            "options_html": "<p>A. <img src='/media/valid_test.gif'/></p><p>B. Text</p>",
-            "answer_html": "<p>【答案】A</p>",
-            "material_id": None
-        }
-    ]
-    builder = PaperBuilder("media")
-    builder.create_paper(mock_questions, "test_output.docx")
-    print("Generated test_output.docx")
+                pass
