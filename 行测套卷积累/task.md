@@ -24,14 +24,14 @@
     - [x] "Entry" Form (File + Range Input).
 
 ## Phase 3: DOCX Generator (Pivot)
-- [/] Implement DOCX Generator in `generator.py` <!-- id: 5 -->
-    - [ ] Mapped Section Headers (Common Sense, Verbal, etc.) <!-- id: 14 -->
-    - [ ] Standard Question Format (1. Stem) <!-- id: 15 -->
-    - [ ] Options Formatting (A/B/C/D on new lines) <!-- id: 16 -->
-    - [ ] Image Insertion (Absolute paths from media) <!-- id: 17 -->
-    - [ ] Answer Key Section <!-- id: 18 -->
-- [ ] Update API to Serve DOCX <!-- id: 19 -->
-- [ ] Update Frontend to Trigger Download <!-- id: 20 -->
+- [x] Implement DOCX Generator in `generator.py` <!-- id: 5 -->
+    - [x] Mapped Section Headers (Common Sense, Verbal, etc.) <!-- id: 14 -->
+    - [x] Standard Question Format (1. Stem) <!-- id: 15 -->
+    - [x] Options Formatting (A/B/C/D on new lines) <!-- id: 16 -->
+    - [x] Image Insertion (Absolute paths from media) <!-- id: 17 -->
+    - [x] Answer Key Section <!-- id: 18 -->
+- [x] Update API to Serve DOCX <!-- id: 19 -->
+- [x] Update Frontend to Trigger Download <!-- id: 20 -->
 
 ## Phase 4: Scoring System (New)
 - [x] Update Extractor to detect Sub-types (Graph/Def/Analogy/Logic) <!-- id: 11 -->

@@ -16,6 +16,16 @@
 - **Regex Robustness**: Updated `ANSWER_KEYWORDS` to use Regex, handling spaces (e.g. `【 解析 】`) and various punctuation.
 - **Subtype Detection**: Updated `extractor.py` to detect Judgment subtypes (Graphical, Definition, Analogy, Logic).
 
-## Features Added
-- **Scoring System**: Implemented "Lost Score" display in the Preview UI based on Question Type.
-- **Paper Sorting**: Updated `paper.html` to sort questions not just by main Type, but by Subtype order.
+## Feature: DOCX Generation (Pivot)
+- **Problem**: Web Print view had inconsistent formatting, browser-dependent layout issues, and mixed options.
+- **Solution**: Implemented a direct DOCX generator (`generator.py`) that rebuilds the paper using standard exam formatting.
+- **Workflow**:
+    1. Select Questions in Web UI.
+    2. Click "**生成错题卷**".
+    3. Backend generates a structured `.docx` file (with Sections, Materials, Options, Images, and Answer Key).
+    4. Browser downloads the file automatically.
+- **Key Improvements**:
+    - **Standard headers** for each section (e.g., "第一部分 常识判断").
+    - **Clean formatting** for Options (A/B/C/D).
+    - **Reliable Image support** using absolute paths.
+    - **Separate Answer Key** at the end of the document.

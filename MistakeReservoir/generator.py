@@ -134,64 +134,153 @@ class PaperBuilder:
                 pass
 
     def _add_html_content_inline(self, paragraph, html_str, doc):
-        """Adds text to existing paragraph, but handles images by creating new paragraphs if needed"""
+        """Adds text to existing paragraph, inserting images inline or as blocks based on size"""
         if not html_str: return
         soup = BeautifulSoup(html_str, 'html.parser')
         
-        # We need to maintain flow.
-        # If pure text, append to paragraph.
-        # If Image, we might need to break paragraph? 
-        # Actually standard docx doesn't handle inline images easily in flow with text runs without complex xml.
-        # Strategy: Text -> Run. Image -> New Paragraph (Centered) -> Resume Text (New Paragraph).
-        # But `paragraph` arg implies we want to append.
+        # Iterate over child nodes to maintain order
+        # Note: This is a simplistic traversal. Nested tags might need recursion, 
+        # but usually the input HTML is flat-ish (p, img, span).
         
-        # Simplified: valid for Stem/Answer which are usually Text + Images at end or middle.
+        # Determine the run to append to
+        run = paragraph.add_run()
         
-        txt = soup.get_text().strip()
-        if txt:
-            paragraph.add_run(txt)
-            
-        # Check for images in the soup
-        imgs = soup.find_all('img')
-        if imgs:
-            # Add images AFTER the text paragraph
-            for img in imgs:
-                src = img.get('src')
-                self._insert_image_file(doc, src)
+        # We process 'descendants' carefully or just iterate contents?
+        # contents is strictly direct children. text might be split.
+        
+        # Strategy: Flatten the soup to a list of (type, content)
+        # Text -> append to current run
+        # Img -> check size -> append to run OR break paragraph
+        
+        # Simple recursive walker (flattened)
+        for output in self._flatten_nodes(soup):
+            type_, content = output
+            if type_ == 'text':
+                if content: run.add_text(content)
+            elif type_ == 'img':
+                # Try to insert
+                self._insert_image_hybrid(doc, run, content)
+                
+    def _flatten_nodes(self, element):
+        """Yields ('text', str) or ('img', src)"""
+        if element.name == 'img':
+            yield ('img', element.get('src'))
+            return
 
-    def _add_options(self, doc, html_str):
-        """Parses options and puts them on new lines"""
-        soup = BeautifulSoup(html_str, 'html.parser')
-        text = soup.get_text().strip()
-        
-        # Regex to find A. B. C. D.
-        # They might be in one line or separate p
-        # We try to clean them up.
-        
-        # Assumption: Input is typically "<p>A. xxx</p><p>B. xxx</p>" or "<p>A.x B.x</p>"
-        # If p tags exist, use them.
-        
-        ps = soup.find_all('p')
-        if ps:
-            for p in ps:
-                t = p.get_text().strip()
-                if t: doc.add_paragraph(t)
-        else:
-            # Try to regex split if it's a blob
-            # Fallback
-            doc.add_paragraph(text)
+        if isinstance(element, str): # NavigableString
+            yield ('text', str(element))
+            return
+
+        for child in element.children:
+            yield from self._flatten_nodes(child)
 
     def _add_image(self, doc, elem):
         img = elem.find('img')
         if img:
-            self._insert_image_file(doc, img.get('src'))
-            
-    def _insert_image_file(self, doc, src):
+            p = doc.add_paragraph()
+            p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            run = p.add_run()
+            self._insert_image_hybrid(doc, run, img.get('src'))
+
+    def _add_options(self, doc, html_str):
+        """Parses options and puts them on new lines, preserving images"""
+        if not html_str: return
+        soup = BeautifulSoup(html_str, 'html.parser')
+        
+        # If wrapped in <p>, iterate Ps. 
+        # Else, just parse the whole blob.
+        ps = soup.find_all('p')
+        
+        if ps:
+            for p_tag in ps:
+                p = doc.add_paragraph()
+                self._add_html_content_inline(p, str(p_tag), doc)
+        else:
+            # Fallback for unwrapped text
+            p = doc.add_paragraph()
+            self._add_html_content_inline(p, html_str, doc)
+
+    def _insert_image_hybrid(self, doc, run, src):
+        """
+        Inserts image. 
+        - If small/icon-like: Insert into 'run' with height=Pt(11) (Inline).
+        - If large: Insert as new Paragraph (Block).
+        """
+        try:
+            from PIL import Image
+        except ImportError:
+            Image = None
+
         if not src: return
         fname = src.split('/')[-1]
         fpath = os.path.join(self.media_dir, fname)
-        if os.path.exists(fpath):
+        
+        if not os.path.exists(fpath):
+            print(f"DEBUG: Image missing {fpath}")
+            return
+            
+        # Determine Sizing Strategy
+        is_inline = False
+        width_arg = None
+        height_arg = None
+        
+        if Image:
             try:
-                doc.add_picture(fpath, width=Inches(3.5)) # Standard width
+                with Image.open(fpath) as img:
+                    w, h = img.size
+                    # Heuristic: 
+                    # If height < 80px -> Likely a symbol/formula -> Inline
+                    # If width > 200px -> Likely a chart -> Block
+                    
+                    if h < 80 or w < 80:
+                        is_inline = True
+                        height_arg = Pt(11) # Matches 5-hao font (~10.5pt)
+                    else:
+                        is_inline = False # Block
+                        if w > 400:
+                            width_arg = Inches(5.5) # Max Page Width
+                        else:
+                             # Medium size, keep native? Or limit
+                             width_arg = Inches(3.5) if w > 300 else None
             except:
-                pass
+                is_inline = False # Fallback to block on error
+                width_arg = Inches(2.0)
+        
+        if is_inline:
+            # Add to CURRENT run
+            try:
+                run.add_picture(fpath, height=height_arg)
+            except Exception as e:
+                 print(f"Error adding inline pic: {e}")
+        else:
+            # Add to NEW paragraph
+            # We need to break the flow? 
+            # Ideally we'd close the current run, make a new p, then resume?
+            # But we are inside `_add_html_content_inline` taking a `paragraph`.
+            # We can't easily "split" the paragraph passed in unless we return new context.
+            # Workaround: Add to the *End* of the current paragraph via run?
+            # run.add_picture() adds it at the current position. 
+            # If we want a "Block" feel but are stuck in a run, we can add a break before/after?
+            try:
+                run.add_break()
+                pic = run.add_picture(fpath, width=width_arg)
+                run.add_break()
+            except Exception as e:
+                print(f"Error adding block pic: {e}")
+
+
+if __name__ == "__main__":
+    # Test
+    mock_questions = [
+       {
+            "original_num": 1,
+            "type": "常识",
+            "content_html": '<p>Inline <img src="/media/valid_test.gif" /> test.</p>',
+            "options_html": "<p>A. <img src='/media/valid_test.gif'/></p><p>B. Text</p>",
+            "answer_html": "<p>【答案】A</p>",
+            "material_id": None
+        }
+    ]
+    builder = PaperBuilder("media")
+    builder.create_paper(mock_questions, "test_output.docx")
+    print("Generated test_output.docx")
