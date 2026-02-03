@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>错题蓄水池</title>
+    <title>错题本</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -130,37 +130,148 @@
             font-weight: bold;
             color: var(--primary);
         }
+
+        /* Grid Styles */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .grid-item {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+
+        .grid-item:hover {
+            border-color: var(--primary);
+        }
+
+        .grid-item.selected {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .type-tag {
+            display: block;
+            font-size: 10px;
+            margin-top: 2px;
+            opacity: 0.6;
+        }
+
+        /* Optional type coloring */
+        .t-changshi {
+            border-bottom: 3px solid #fcd34d;
+        }
+
+        .t-yanyu {
+            border-bottom: 3px solid #f87171;
+        }
+
+        .t-shuliang {
+            border-bottom: 3px solid #60a5fa;
+        }
+
+        .t-ziliao {
+            border-bottom: 3px solid #4ade80;
+        }
+
+        .t-panduan {
+            border-bottom: 3px solid #c084fc;
+        }
+
+        .header-icon {
+            width: 32px;
+            height: 32px;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+
+        .btn-icon {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+
+        .theme-btn {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: transform 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .theme-btn:hover {
+            transform: scale(1.1);
+        }
     </style>
 </head>
 
 <body>
 
     <div class="container">
-        <div id="stats-bar">
-            <!-- populated by js -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <div id="stats-bar" style="flex:1; margin-bottom:0; margin-right:20px;">
+                <!-- populated by js -->
+            </div>
+            <button id="themeToggleBtn" onclick="toggleTheme()" class="theme-btn" title="Switch Theme">🎨</button>
         </div>
 
         <div class="card">
-            <h2>📥 错题录入</h2>
-            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-                <span id="fileName">点击选择 DOCX 文件 (或拖拽至此)</span>
+            <h2><img id="icon_upload" src="" class="header-icon"> 错题录入</h2>
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                <span id="fileName">点击选择 DOCX 文件</span>
                 <input type="file" id="fileInput" hidden accept=".docx">
             </div>
 
-            <div style="margin-top: 15px;">
-                <label>输入错题题号 (例如: 1-5, 12, 116-120)</label>
-                <input type="text" id="rangeInput" placeholder="1-5, 12, 116-120">
-            </div>
+            <!-- New Grid Selection Area -->
+            <div id="gridPanel" style="display:none; margin-top: 20px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <label>请选择题目:</label>
+                    <div style="display:flex; gap: 5px;">
+                        <button onclick="selectAll()"
+                            style="padding:5px 10px; margin:0; font-size:14px; background:#64748b;">全选</button>
+                        <button onclick="clearSelection()"
+                            style="padding:5px 10px; margin:0; font-size:14px; background:#ef4444;">清空</button>
+                    </div>
+                </div>
 
-            <button onclick="extractPreview()" id="extractBtn">🔍 解析预览</button>
+                <div id="qGrid" class="grid-container"></div>
+
+                <div style="margin-top:15px; text-align:right;">
+                    <span id="selectionSummary" style="margin-right:15px; font-weight:bold; color:var(--primary);">已选: 0
+                        题</span>
+                    <button onclick="extractPreview()" id="extractBtn">
+                        <img id="icon_preview" src="" class="btn-icon"> 解析预览
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div class="card">
-            <h2>📤 生成错题卷</h2>
+            <h2><img id="icon_generate_header" src="" class="header-icon"> 生成错题卷</h2>
             <div style="display:flex; gap:10px; align-items:center;">
                 <input type="number" id="genCount" value="20" style="width:80px; margin:0;" min="1" max="135">
                 <label>题量</label>
-                <button onclick="generatePaper()" style="margin:0;">📄 生成错题卷</button>
+                <button onclick="generatePaper()" style="margin:0;">
+                    <img id="icon_generate_btn" src="" class="btn-icon"> 生成错题卷
+                </button>
             </div>
             <div id="downloadArea" style="margin-top:15px;"></div>
         </div>
@@ -168,7 +279,9 @@
         <div class="card" id="previewArea" style="display:none;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h3>预览 (<span id="previewCount">0</span> 题)</h3>
-                <button onclick="confirmSave()" style="background:#16a34a;">✅ 确认入库</button>
+                <button onclick="confirmSave()" style="background:#16a34a;">
+                    <img id="icon_import" src="" class="btn-icon"> 确认入库
+                </button>
             </div>
             <div class="preview-list" id="previewList"></div>
         </div>
@@ -177,38 +290,180 @@
     <script>
         let currentFilename = "";
         let extractedData = [];
+        let availableQuestions = []; // [{num, type}]
+        let selectedIds = new Set();
+
+        // Theme Config
+        const THEMES = {
+            "theme1": {
+                upload: "/static/assets/running.png",
+                preview: "/static/assets/archery.png",
+                import: "/static/assets/weightlifting.png",
+                generate: "/static/assets/fire-torch.png"
+            },
+            "theme2": {
+                upload: "/static/assets/javelin-throw.png",
+                preview: "/static/assets/archery.png",
+                import: "/static/assets/weightlifting.png",
+                generate: "/static/assets/pyre.png"
+            }
+        };
+
+        function switchTheme(themeName) {
+            const t = THEMES[themeName];
+            if (!t) return;
+
+            document.getElementById('icon_upload').src = t.upload;
+            document.getElementById('icon_preview').src = t.preview;
+            document.getElementById('icon_import').src = t.import;
+            document.getElementById('icon_generate_header').src = t.generate;
+            document.getElementById('icon_generate_btn').src = t.generate;
+
+            // Persist
+            localStorage.setItem('mistake_theme', themeName);
+        }
+
+        function toggleTheme() {
+            let current = localStorage.getItem('mistake_theme') || 'theme1';
+            let next = (current === 'theme1') ? 'theme2' : 'theme1';
+
+            // Animate
+            let btn = document.getElementById('themeToggleBtn');
+            btn.style.transform = "rotate(360deg)";
+            setTimeout(() => {
+                btn.style.transform = "none";
+            }, 500);
+
+            switchTheme(next);
+        }
+
+        // Init logic
+        let savedTheme = localStorage.getItem('mistake_theme') || 'theme1';
+        switchTheme(savedTheme);
+
+        // --- Upload & Analyze ---
 
         document.getElementById('fileInput').addEventListener('change', async function (e) {
             let file = e.target.files[0];
             if (!file) return;
 
-            document.getElementById('fileName').innerText = "正在上传: " + file.name;
+            document.getElementById('fileName').innerText = "Uploading: " + file.name;
 
             let formData = new FormData();
             formData.append("file", file);
 
             try {
+                // 1. Upload
                 let res = await fetch('/upload', { method: 'POST', body: formData });
                 let data = await res.json();
                 currentFilename = data.filename;
                 document.getElementById('fileName').innerText = "✅ 已上传: " + currentFilename;
+
+                // 2. Analyze Structure automatically
+                analyzeFile(currentFilename);
+
             } catch (err) {
                 alert("上传失败");
+                console.error(err);
             }
         });
 
+        async function analyzeFile(filename) {
+            document.getElementById('gridPanel').style.display = 'block';
+            document.getElementById('qGrid').innerHTML = '<div style="padding:20px; text-align:center;">正在分析试卷结构...</div>';
+
+            try {
+                let res = await fetch('/analyze_file', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: filename })
+                });
+
+                if (!res.ok) throw new Error("Analyze failed");
+
+                let data = await res.json();
+                availableQuestions = data.questions; // List of {num, type}
+
+                // Sort by num just in case
+                availableQuestions.sort((a, b) => a.num - b.num);
+
+                renderGrid();
+
+                selectedIds.clear();
+                updateSelectionUI();
+
+            } catch (e) {
+                document.getElementById('qGrid').innerHTML = '<div style="color:red; text-align:center;">分析失败: ' + e.message + '</div>';
+            }
+        }
+
+        // --- Grid Logic ---
+
+        function renderGrid() {
+            let html = "";
+            availableQuestions.forEach(q => {
+                let isSel = selectedIds.has(q.num);
+                let typeClass = getTypeClass(q.type);
+                html += `<div class="grid-item ${isSel ? 'selected' : ''} ${typeClass}" 
+                              onclick="toggleSelection(${q.num}, this)">
+                             ${q.num}
+                             <span class="type-tag">${q.type || '未知'}</span>
+                         </div>`;
+            });
+            document.getElementById('qGrid').innerHTML = html;
+        }
+
+        function getTypeClass(type) {
+            if (!type) return "";
+            if (type.includes("常识")) return "t-changshi";
+            if (type.includes("言语")) return "t-yanyu";
+            if (type.includes("数量")) return "t-shuliang";
+            if (type.includes("资料")) return "t-ziliao";
+            if (type.includes("判断") || type.includes("逻辑") || type.includes("图形") || type.includes("定义") || type.includes("类比")) return "t-panduan";
+            return "";
+        }
+
+        function toggleSelection(num, el) {
+            if (selectedIds.has(num)) {
+                selectedIds.delete(num);
+                el.classList.remove('selected');
+            } else {
+                selectedIds.add(num);
+                el.classList.add('selected');
+            }
+            updateSelectionUI();
+        }
+
+        function selectAll() {
+            availableQuestions.forEach(q => selectedIds.add(q.num));
+            renderGrid(); // Re-render to update classes
+            updateSelectionUI();
+        }
+
+        function clearSelection() {
+            selectedIds.clear();
+            renderGrid();
+            updateSelectionUI();
+        }
+
+        function updateSelectionUI() {
+            document.getElementById('selectionSummary').innerText = `已选: ${selectedIds.size} 题`;
+        }
+
         async function extractPreview() {
             if (!currentFilename) return alert("请先上传文件");
-            let ranges = document.getElementById('rangeInput').value;
-            if (!ranges) return alert("请输入题号");
+            if (selectedIds.size === 0) return alert("请至少选择一道题");
 
-            document.getElementById('extractBtn').innerText = "Parsing...";
+            document.getElementById('extractBtn').innerText = "Processing...";
+
+            // Convert Set to Array
+            let ids = Array.from(selectedIds).sort((a, b) => a - b);
 
             try {
                 let res = await fetch('/extract_preview', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filename: currentFilename, ranges: ranges })
+                    body: JSON.stringify({ filename: currentFilename, ids: ids })
                 });
 
                 if (!res.ok) {
@@ -217,20 +472,21 @@
                 }
 
                 let data = await res.json();
-
-                if (!data.questions) {
-                    throw new Error("Invalid response from server");
-                }
-
                 extractedData = data.questions;
                 renderPreview(data.questions);
                 document.getElementById('previewArea').style.display = 'block';
+
+                // Scroll to preview
+                document.getElementById('previewArea').scrollIntoView({ behavior: 'smooth' });
+
             } catch (err) {
                 alert("解析失败: " + err);
             } finally {
                 document.getElementById('extractBtn').innerText = "🔍 解析预览";
             }
         }
+
+        // --- Existing Utils ---
 
         const SCORE_MAP = {
             '言语': 0.8,
@@ -250,13 +506,14 @@
 
             list.forEach(q => {
                 let score = SCORE_MAP[q.type] || 0.5;
+                if (!q.type) score = 0.5; // fallback
                 totalLostScore += score;
 
                 html += `
                 <div class="q-item">
                     <div class="q-meta">
                         #${q.original_num}<br>
-                        <span style="font-size:12px; color:#64748b">${q.type}</span><br>
+                        <span style="font-size:12px; color:#64748b">${q.type || '未知'}</span><br>
                         <span style="font-size:12px; color:#ef4444">-${score}分</span>
                         ${q.material_content ? '<br><span class="material-badge">含材料</span>' : ''}
                     </div>
@@ -332,19 +589,21 @@
         }
 
         async function loadStats() {
-            let res = await fetch('/pool_status');
-            let data = await res.json();
-            let html = "";
-            for (let type in data) {
-                html += `
-                <div class="stat-box">
-                    <div class="stat-num">${data[type]}</div>
-                    <div>${type}</div>
-                </div>
-            `;
-            }
-            if (!html) html = "<div class='stat-box'>错题池为空</div>";
-            document.getElementById('stats-bar').innerHTML = html;
+            try {
+                let res = await fetch('/pool_status');
+                let data = await res.json();
+                let html = "";
+                for (let type in data) {
+                    html += `
+                    <div class="stat-box">
+                        <div class="stat-num">${data[type]}</div>
+                        <div>${type}</div>
+                    </div>
+                `;
+                }
+                if (!html) html = "<div class='stat-box'>错题池为空</div>";
+                document.getElementById('stats-bar').innerHTML = html;
+            } catch (e) { console.log(e); }
         }
 
         loadStats();

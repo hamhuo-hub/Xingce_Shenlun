@@ -1,2 +1,4 @@
 /MistakeReservoir/media
 *.docx
+/MistakeReservoir/__pycache__
+/MistakeReservoir/tmp_media

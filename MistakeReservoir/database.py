@@ -193,6 +193,141 @@ class DatabaseManager:
         conn.close()
         return questions
 
+    def get_standard_exam_questions(self, count: int = 130):
+        """
+        Fetch questions respecting the standard composition:
+        Common: 20
+        Verbal: 40
+        Quant: 15
+        Judgment: 40 (Graph 10, Dict 10, Analogy 10, Logic 10)
+        Data: 15
+        
+        If count != 130, we scale these ratios.
+        """
+        SCALE = count / 130.0
+        
+        # Define Composition
+        # Using exact matching for types stored in DB
+        
+        # Note: In DB, '判断' might be stored as specific subtypes '图形', '定义', '类比', '逻辑'
+        # based on extractor logic if section headers were found.
+        # However, extractor defaults to '判断' if only "判断" found.
+        # We need to handle fallback.
+        
+        composition = [
+            ("常识", int(20 * SCALE)),
+            ("言语", int(40 * SCALE)),
+            ("数量", int(15 * SCALE)),
+            ("资料", int(15 * SCALE)),
+            # Judyment Subtypes
+            ("图形", int(10 * SCALE)),
+            ("定义", int(10 * SCALE)),
+            ("类比", int(10 * SCALE)),
+            ("逻辑", int(10 * SCALE)),
+        ]
+        
+        all_questions = []
+        conn = self.get_connection()
+        conn.row_factory = sqlite3.Row # Ensure we get dict-like access
+        
+        # Fetch for each type
+        for type_key, needed in composition:
+            if needed <= 0: continue
+            
+            # For Judgment subtypes, we query specifically.
+            # But what if DB has just "判断"? 
+            # We add a fallback: if specific subtypes yield 0, try fetching "判断" and distribute?
+            # For now, simplistic approach:
+            
+            c = conn.cursor()
+            # Select with limit
+            # Also join materials
+            query = '''
+                SELECT q.*, m.content_html as material_content, m.images as material_images
+                FROM review_stats r
+                JOIN questions q ON r.question_id = q.id
+                LEFT JOIN materials m ON q.material_id = m.id
+                WHERE r.status = 'pool' AND q.type LIKE ?
+                ORDER BY RANDOM() LIMIT ?
+            '''
+            c.execute(query, (f"%{type_key}%", needed))
+            rows = c.fetchall()
+            
+            for row in rows:
+                q = dict(row)
+                if q.get('images'): q['images'] = json.loads(q['images'])
+                if q.get('material_images'): q['material_images'] = json.loads(q['material_images'])
+                all_questions.append(q)
+                
+            c.close()
+
+        conn.close()
+        
+        # If we are short on questions (e.g. didn't find "图形" but only "判断"), 
+        # we currently just return what we found. 
+        # Ideally we should fill gaps with "Unknown" or generic "判断" if subtypes missing.
+        
+        return all_questions
+
+    def wipe_database(self):
+        """
+        Wipe all data from tables but keep the schema.
+        """
+        conn = self.get_connection()
+        c = conn.cursor()
+        try:
+            c.execute("DELETE FROM review_stats")
+            c.execute("DELETE FROM questions")
+            c.execute("DELETE FROM materials")
+            c.execute("DELETE FROM sources")
+            conn.commit()
+            print("Database Wiped Clean.")
+        except Exception as e:
+            print(f"Error wiping database: {e}")
+            conn.rollback()
+        finally:
+            conn.close()
+
+    def migrate_database(self):
+        """
+        Run schema migrations.
+        """
+        conn = self.get_connection()
+        c = conn.cursor()
+        try:
+            # Migration 1: Add options_html if missing
+            try:
+                c.execute("ALTER TABLE questions ADD COLUMN options_html TEXT")
+                print("Added options_html column.")
+            except sqlite3.OperationalError:
+                pass # Already exists
+
+            conn.commit()
+            print("Migration checks completed.")
+        except Exception as e:
+            print(f"Error migrating database: {e}")
+        finally:
+            conn.close()
+
 if __name__ == "__main__":
-    db = DatabaseManager("test.db")
-    print("DB Initialized")
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Database Manager CLI")
+    parser.add_argument("--wipe", action="store_true", help="Wipe all data from database")
+    parser.add_argument("--migrate", action="store_true", help="Run schema migrations")
+    
+    args = parser.parse_args()
+    
+    db = DatabaseManager()
+    
+    if args.wipe:
+        confirm = input("Are you sure you want to WIPE the database? (y/n): ")
+        if confirm.lower() == 'y':
+            db.wipe_database()
+        else:
+            print("Wipe cancelled.")
+            
+    if args.migrate:
+        db.migrate_database()
+        
+    print(f"Database Manager initialized at {db.db_path}")

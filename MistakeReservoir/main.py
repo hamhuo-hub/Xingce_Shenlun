@@ -32,7 +32,11 @@ class GenerateRequest(BaseModel):
 @app.post("/generate")
 def generate_paper(req: GenerateRequest):
     # Fetch Questions
-    questions = db.get_random_questions(req.total_count, req.types if req.types else None)
+    if req.types:
+        questions = db.get_random_questions(req.total_count, req.types)
+    else:
+        # User didn't specify types -> Use Standard Exam Distribution
+        questions = db.get_standard_exam_questions(req.total_count)
     
     if not questions:
         raise HTTPException(status_code=400, detail="No questions available in pool")
@@ -62,9 +66,13 @@ app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), na
 app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
 
 # Models
+class AnalyzeRequest(BaseModel):
+    filename: str
+
 class ExtractRequest(BaseModel):
     filename: str
-    ranges: str # e.g. "1-5, 12"
+    ranges: Optional[str] = None
+    ids: Optional[List[int]] = None
 
 class SaveRequest(BaseModel):
     source_filename: str
@@ -82,10 +90,12 @@ async def upload_file(file: UploadFile = File(...)):
     return {"filename": file.filename}
 
 def parse_ranges(range_str: str) -> List[int]:
+    if not range_str: return []
     ids = set()
     parts = range_str.split(',')
     for p in parts:
         p = p.strip()
+        if not p: continue
         if '-' in p:
             try:
                 start, end = map(int, p.split('-'))
@@ -98,15 +108,54 @@ def parse_ranges(range_str: str) -> List[int]:
             except: pass
     return sorted(list(ids))
 
+@app.post("/analyze_file")
+def analyze_file(req: AnalyzeRequest):
+    file_path = os.path.join(UPLOAD_DIR, req.filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    try:
+        # Extract ALL to get metadata
+        # Optimization: We could have a lighter extractor method, but this is fine for now
+        questions = extractor.extract_from_file(file_path, target_ids=None, skip_images=True)
+        
+        # Return lightweight metadata
+        meta_list = [
+            {"num": q['original_num'], "type": q['type']} 
+            for q in questions
+        ]
+        return {"count": len(meta_list), "questions": meta_list}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/extract_preview")
 def extract_preview(req: ExtractRequest):
     file_path = os.path.join(UPLOAD_DIR, req.filename)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
     
-    target_ids = parse_ranges(req.ranges)
+    target_ids = []
+    if req.ids:
+        target_ids = req.ids
+    elif req.ranges:
+        target_ids = parse_ranges(req.ranges)
+    
+    if not target_ids:
+         # extraction with empty list usually means "none", but original logic implied "parse_ranges" might result in empty.
+         # If no IDs specified, maybe return error? Or extracting nothing is valid.
+         pass
+
     try:
-        questions = extractor.extract_from_file(file_path, target_ids)
+        questions = extractor.extract_from_file(file_path, target_ids if target_ids else None)
+        # If target_ids WAS provided but empty list, we should probably return empty
+        # Logic in extractor: "if target_ids is None or current_q_num in target_ids"
+        # So passing [] means "match nothing". passing None means "match all".
+        
+        if (req.ids is not None) and len(req.ids) == 0:
+             questions = []
+             
         return {"count": len(questions), "questions": questions}
     except Exception as e:
         import traceback
