@@ -13,13 +13,30 @@ from database import DatabaseManager
 
 app = FastAPI()
 
+# ... imports
 # Config
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MEDIA_DIR = os.path.join(BASE_DIR, "media")
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+import sys
+
+if getattr(sys, 'frozen', False):
+    # Running as compiled exe
+    # ASSET_DIR: Temporary folder where PyInstaller extracts code/static (Bundle)
+    ASSET_DIR = sys._MEIPASS
+    # DATA_DIR: Directory where the executable/script resides (User Data)
+    DATA_DIR = os.path.dirname(sys.executable)
+else:
+    # Running as script
+    ASSET_DIR = os.path.dirname(os.path.abspath(__file__))
+    DATA_DIR = ASSET_DIR
+
+# Mutable User Data (External)
+MEDIA_DIR = os.path.join(DATA_DIR, "media")
+UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
+
 if not os.path.exists(UPLOAD_DIR): os.makedirs(UPLOAD_DIR)
+if not os.path.exists(MEDIA_DIR): os.makedirs(MEDIA_DIR)
+
 # Init Components
-db = DatabaseManager(os.path.join(BASE_DIR, "reservoir.db"))
+db = DatabaseManager(os.path.join(DATA_DIR, "reservoir.db"))
 extractor = QuestionExtractor(MEDIA_DIR)
 
 
@@ -62,7 +79,7 @@ def download_file(filename: str):
     return HTTPException(404, "File not found")
 
 # Mount Static
-app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+app.mount("/static", StaticFiles(directory=os.path.join(ASSET_DIR, "static")), name="static")
 app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
 
 # Models
@@ -80,7 +97,7 @@ class SaveRequest(BaseModel):
 
 @app.get("/")
 def read_root():
-    return FileResponse(os.path.join(BASE_DIR, "static/index.html"))
+    return FileResponse(os.path.join(ASSET_DIR, "static/index.html"))
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):

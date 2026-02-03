@@ -2,3 +2,5 @@
 *.docx
 /MistakeReservoir/__pycache__
 /MistakeReservoir/tmp_media
+/MistakeReservoir/build
+/MistakeReservoir/dist

@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+python-docx
+beautifulsoup4
+pillow
+python-multipart
+pyinstaller
